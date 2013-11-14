@@ -12,6 +12,8 @@ BTC.
 2. `./run.sh` in a tmux or screen session.
 3. Sleep at night.
 
+## More Info
+
 You need to enable API access in your Coinbase account. It's disabled by
 default. When you run the bot, it will prompt you for the API key in a password
 field to keep it out of your shell history.
@@ -22,3 +24,7 @@ set these to your liking *before* running it.
 
 **I cannot be held accountable if this bot explodes and sells off your life
 savings for a pittance. Use at your own risk.**
+
+## License
+
+Released under the MIT license.
