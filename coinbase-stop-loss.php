@@ -34,31 +34,32 @@ echo "Stop loss price set at \$" . STOP_LOSS_PRICE . ".\n";
 echo "Prepared to sell entire account balance ($balance BTC).\n";
 
 while (true) {
-    // Check the current sell price. This includes the Coinbase fees of $0.15 + 1%.
-    $sellPrice = $coinbase->getSellPrice('1');
-    echo date('[Y-m-d H:i:s]') . " \$$sellPrice";
+    try {
+        // Check the current sell price. This includes the Coinbase fees of $0.15 + 1%.
+        $sellPrice = $coinbase->getSellPrice('1');
+        echo date('[Y-m-d H:i:s]') . " \$$sellPrice";
 
-    // If the current sell price fell below our stop loss price, SELL SELL SELL!
-    if (bccomp($sellPrice, STOP_LOSS_PRICE) <= 0) {
-        echo "\n";
-        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
-        echo "!!! STOP LOSS TRIGGERED, SELLING ALL BTC !!!\n";
-        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+        // If the current sell price fell below our stop loss price, SELL SELL SELL!
+        if (bccomp($sellPrice, STOP_LOSS_PRICE) <= 0) {
+            echo "\n";
+            echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+            echo "!!! STOP LOSS TRIGGERED, SELLING ALL BTC !!!\n";
+            echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
 
-        // Retrieve the current account balance.
-        $balance = $coinbase->getBalance();
-        echo "Current account balance is $balance BTC.\n";
+            // Retrieve the current account balance.
+            $balance = $coinbase->getBalance();
+            echo "Current account balance is $balance BTC.\n";
 
-        // Fire the missiles.
-        $response = $coinbase->sell($balance);
-        $amountSold = $response->transfer->btc->amount;
-        $saleSubtotal = $response->transfer->subtotal->amount;
-        $saleTotal = $response->transfer->total->amount;
-        $saleCode = $response->transfer->code;
+            // Fire the missiles.
+            $response = $coinbase->sell($balance);
+            $amountSold = $response->transfer->btc->amount;
+            $saleSubtotal = $response->transfer->subtotal->amount;
+            $saleTotal = $response->transfer->total->amount;
+            $saleCode = $response->transfer->code;
 
-        // Set up our notification message.
-        $subject = 'Coinbase Stop Loss Triggered';
-        $message = <<<EOT
+            // Set up our notification message.
+            $subject = 'Coinbase Stop Loss Triggered';
+            $message = <<<EOT
 The bot sold all your BTC.
 
 Amount Sold: $amountSold BTC
@@ -68,21 +69,25 @@ Transaction Code: $saleCode
 The bot will now exit. If you wish to resume its operation, you need to restart it.
 EOT;
 
-        echo "Successfully sold $amountSold BTC.\n";
-        echo "Cashed out for \$$saleSubtotal (\$$saleTotal after fees).\n";
-        echo "The transaction code is $saleCode.\n";
+            echo "Successfully sold $amountSold BTC.\n";
+            echo "Cashed out for \$$saleSubtotal (\$$saleTotal after fees).\n";
+            echo "The transaction code is $saleCode.\n";
 
-        // Send an email notification that the stop loss was triggered.
-        if (mail(NOTIFY_EMAIL, $subject, $message)) {
-            echo "Successfully sent email notification to " . NOTIFY_EMAIL . ".\n";
+            // Send an email notification that the stop loss was triggered.
+            if (mail(NOTIFY_EMAIL, $subject, $message)) {
+                echo "Successfully sent email notification to " . NOTIFY_EMAIL . ".\n";
+            } else {
+                echo "Failed to send email notification to " . NOTIFY_EMAIL . ".\n";
+            }
+
+            // Quit the stop loss bot. We fired the missiles. Nothing left to do.
+            break;
         } else {
-            echo "Failed to send email notification to " . NOTIFY_EMAIL . ".\n";
+            echo " (no action)\n";
         }
-
-        // Quit the stop loss bot. We fired the missiles. Nothing left to do.
-        break;
-    } else {
-        echo " (no action)\n";
+    } catch (Exception $e) {
+        // Print it and try again.
+        echo "EXCEPTION: " . $e->getMessage() . "\n";
     }
 
     // Go to sleep for a while.
